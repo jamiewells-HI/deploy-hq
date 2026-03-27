@@ -35,22 +35,24 @@ export async function POST(req: Request) {
     };
 
     // A simpler approach for the mock: an async loop writing to DB
+    // Turbo-Charged Simulation
     setTimeout(async () => {
       const logs = [
-        '> Cloning repository from GitHub...',
-        '> Installing dependencies...',
-        '  added 452 packages in 3s',
+        '> [Cloudflare Pages] Cloning repository...',
+        '> [Cloudflare Pages] Using cached node_modules',
         '> npm run build',
         '  Creating an optimized production build...',
         '  ✓ Compiled successfully',
-        '> Uploading to Cloudflare Pages ☁️',
-        '  ✓ Deployment active!'
+        '> [Cloudflare Pages] Deploying to edge storage...',
+        '  ✓ Site is live at edge!'
       ];
       
       let currentLog = '> Preparing build environment...\n';
+      const project = await prisma.project.findUnique({ where: { id: projectId } });
+      const projectName = project?.name || 'project';
       
       for (let i = 0; i < logs.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 1500)); // wait 1.5s per log step
+        await new Promise(resolve => setTimeout(resolve, 700)); // Faster 0.7s pulses
         currentLog += logs[i] + '\n';
         
         await prisma.deployment.update({
@@ -59,11 +61,17 @@ export async function POST(req: Request) {
         });
       }
 
+      // Finalize with Success and URL!
       await prisma.deployment.update({
         where: { id: deployment.id },
-        data: { status: 'SUCCESS' }
+        data: { 
+          status: 'SUCCESS', 
+          deploymentUrl: `https://${projectName.toLowerCase()}.pages.dev` 
+        }
       });
-    }, 1000);
+      
+      console.log(`[Deployment] Project ${projectId} successfully deployed.`);
+    }, 200);
 
     return NextResponse.json({
       success: true,
