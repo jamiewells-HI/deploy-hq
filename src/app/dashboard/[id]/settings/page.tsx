@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import Link from 'next/link';
+import DomainManager from '@/components/ui/DomainManager';
+import EnvVarManager from '@/components/ui/EnvVarManager';
 
 export default async function ProjectSettings({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,11 +15,21 @@ export default async function ProjectSettings({ params }: { params: Promise<{ id
   }
 
   const project = await prisma.project.findUnique({
-    where: { id }
+    where: { id },
+    include: { 
+      domains: true,
+      envVars: true 
+    }
   });
 
-  if (!project || project.userId !== userId) {
-    return <div className="text-white p-20 text-center">Project not found or access denied.</div>;
+  if (!project) {
+    console.error(`[DeployHQ] Project with ID ${id} not found in DB.`);
+    return <div className="text-white p-20 text-center">Project not found (ID: {id})</div>;
+  }
+
+  if (project.userId !== userId) {
+    console.error(`[DeployHQ] Access denied for user ${userId} to project ${id}.`);
+    return <div className="text-white p-20 text-center">Unauthorized access.</div>;
   }
 
   return (
@@ -41,8 +53,9 @@ export default async function ProjectSettings({ params }: { params: Promise<{ id
         {/* Settings Sidebar Menus */}
         <div className="w-64 flex flex-col gap-2">
           <button className="text-sm text-left text-zinc-100 font-medium px-3 py-2 bg-zinc-900 rounded-md">General</button>
+          <button className="text-sm text-left text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 font-medium px-3 py-2 rounded-md">General</button>
           <button className="text-sm text-left text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 font-medium px-3 py-2 rounded-md">Environment Variables</button>
-          <button className="text-sm text-left text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 font-medium px-3 py-2 rounded-md">Domains</button>
+          <button className="text-sm text-left text-zinc-100 font-medium px-3 py-2 bg-zinc-900 rounded-md">Domains</button>
           <button className="text-sm text-left text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 font-medium px-3 py-2 rounded-md">Integrations</button>
         </div>
 
@@ -88,35 +101,11 @@ export default async function ProjectSettings({ params }: { params: Promise<{ id
             </form>
           </div>
 
-          <div className="border border-zinc-800 bg-[#09090b] rounded-xl overflow-hidden shadow-sm" id="env">
-            <div className="p-6 border-b border-zinc-800">
-              <h2 className="text-xl font-semibold text-zinc-100 mb-2">Environment Variables</h2>
-              <p className="text-sm text-zinc-400">Securely inject secrets required by your Application into the Build Workers seamlessly.</p>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              <div className="flex gap-4">
-                <input placeholder="KEY (e.g. DATABASE_URL)" className="flex-1 font-mono uppercase bg-black border border-zinc-800 text-sm text-zinc-200 rounded-md px-3 py-2 outline-none focus:border-zinc-500 placeholder-zinc-700" />
-                <input placeholder="VALUE" type="password" className="flex-1 font-mono bg-black border border-zinc-800 text-sm text-zinc-200 rounded-md px-3 py-2 outline-none focus:border-zinc-500 placeholder-zinc-700" />
-                <button className="bg-zinc-100 text-black px-4 py-2 font-medium text-sm rounded-md shadow-sm hover:bg-white transiton">Add</button>
-              </div>
+          <EnvVarManager projectId={project.id} initialVars={project.envVars as any} />
 
-              <div className="rounded-lg border border-zinc-800 overflow-hidden">
-                <div className="bg-zinc-900 px-4 py-2.5 text-xs font-semibold text-zinc-400 tracking-wider flex border-b border-zinc-800">
-                  <div className="flex-1">NAME</div>
-                  <div className="flex-1">VALUE</div>
-                  <div className="w-10"></div>
-                </div>
-                <div className="bg-black px-4 py-3 text-sm font-mono text-zinc-300 flex items-center border-b border-zinc-800/60">
-                  <div className="flex-1 text-emerald-400">NEXT_PUBLIC_API_URL</div>
-                  <div className="flex-1 tracking-[4px] text-zinc-500">•••••••••••••••••</div>
-                  <button className="text-zinc-600 hover:text-red-400 transition-colors"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <DomainManager projectId={project.id} initialDomains={project.domains as any} />
 
-          <div className="border border-red-500/20 bg-red-500/5 rounded-xl overflow-hidden shadow-sm" id="env">
+          <div className="border border-red-500/20 bg-red-500/5 rounded-xl overflow-hidden shadow-sm">
             <div className="p-6">
               <h2 className="text-lg font-semibold text-red-500 mb-2">Delete Project</h2>
               <p className="text-sm text-zinc-400 mb-6 max-w-lg">The project will be permanently deleted along with its entire deployment history. This action cannot be officially undone.</p>

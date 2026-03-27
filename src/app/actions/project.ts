@@ -1,8 +1,9 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { registerCustomHostname } from '@/lib/cloudflare';
 
 export async function createTemplateProject(formData: FormData) {
   const cookieStore = await cookies();
@@ -22,6 +23,14 @@ export async function createTemplateProject(formData: FormData) {
       outputDir: '.next',
     }
   });
+
+  // Automated Cloudflare for SaaS Registration
+  const host = (await headers()).get('host');
+  if (host && !host.includes('localhost')) {
+    const customHostname = `${name.toLowerCase().replace(/\s+/g, '-')}.${host}`;
+    console.log(`[DeployHQ] Registering custom hostname with Cloudflare: ${customHostname}`);
+    await registerCustomHostname(customHostname);
+  }
 
   redirect(`/dashboard/${project.id}`);
 }
@@ -54,5 +63,89 @@ export async function uploadLocalProject(formData: FormData) {
     }
   });
 
+  // Automated Cloudflare for SaaS Registration
+  const host = (await headers()).get('host');
+  if (host && !host.includes('localhost')) {
+    const customHostname = `${name.toLowerCase().replace(/\s+/g, '-')}.${host}`;
+    console.log(`[DeployHQ] Registering custom hostname with Cloudflare: ${customHostname}`);
+    await registerCustomHostname(customHostname);
+  }
+
   redirect(`/dashboard/${project.id}`);
 }
+
+export async function addCustomDomain(projectId: string, hostname: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth')?.value;
+  if (!userId) throw new Error("Unauthorized");
+
+  // Basic validation
+  if (!hostname.includes('.') || hostname.length < 4) {
+    throw new Error("Invalid domain name");
+  }
+
+  const domain = await prisma.domain.create({
+    data: {
+      projectId,
+      hostname: hostname.toLowerCase(),
+      status: 'PENDING'
+    }
+  });
+
+  // Register with Cloudflare SaaS
+  const cfResponse = await registerCustomHostname(hostname);
+  
+  if (!cfResponse.success) {
+    console.error("Cloudflare registration failed, keeping PENDING for manual retry", cfResponse.errors);
+  }
+
+  return domain;
+}
+
+export async function deleteCustomDomain(domainId: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth')?.value;
+  if (!userId) throw new Error("Unauthorized");
+
+  await prisma.domain.delete({
+    where: { id: domainId }
+  });
+}
+
+export async function upsertEnvVars(projectId: string, vars: { key: string, value: string }[]) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth')?.value;
+  if (!userId) throw new Error("Unauthorized");
+
+  // Clean and filter empty keys
+  const cleanVars = vars.filter(v => v.key.trim() !== '');
+
+  for (const v of cleanVars) {
+    await prisma.envVar.upsert({
+      where: {
+        projectId_key: {
+          projectId,
+          key: v.key.trim()
+        }
+      },
+      update: { value: v.value },
+      create: {
+        projectId,
+        key: v.key.trim(),
+        value: v.value
+      }
+    });
+  }
+}
+
+export async function deleteEnvVar(id: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth')?.value;
+  if (!userId) throw new Error("Unauthorized");
+
+  await prisma.envVar.delete({
+    where: { id }
+  });
+}
+
+

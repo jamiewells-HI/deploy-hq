@@ -28,6 +28,16 @@ model Project {
   user          User         @relation(fields: [userId], references: [id])
   deployments   Deployment[]
   envVars       EnvVar[]
+  domains       Domain[]
+}
+
+model Domain {
+  id            String    @id @default(uuid())
+  projectId     String
+  hostname      String    @unique
+  status        String    @default("PENDING") // PENDING, ACTIVE, ERROR
+  project       Project   @relation(fields: [projectId], references: [id])
+  createdAt     DateTime  @default(now())
 }
 
 model Deployment {
@@ -47,4 +57,6 @@ model EnvVar {
   key           String
   value         String
   project       Project   @relation(fields: [projectId], references: [id])
+
+  @@unique([projectId, key])
 }
