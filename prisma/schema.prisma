@@ -47,7 +47,8 @@ model Deployment {
   status        String    // QUEUED, BUILDING, SUCCESS, FAILED
   commitHash    String
   buildLogs     String?
-  url           String?
+  deploymentUrl String?   // The actual URL on Cloudflare/R2
+  url           String?   // Legacy/alternative URL field
   createdAt     DateTime  @default(now())
   project       Project   @relation(fields: [projectId], references: [id])
 }

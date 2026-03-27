@@ -26,7 +26,23 @@ export async function createTemplateProject(formData: FormData) {
     }
   });
 
-  // Automated Cloudflare for SaaS Registration
+  // 1. Trigger the Real Production Deployment
+  const { triggerCloudflareDeployment } = await import('@/lib/deployments');
+  const deployResult = await triggerCloudflareDeployment(project.id, repo);
+
+  if (deployResult.success) {
+    await prisma.deployment.create({
+      data: {
+        projectId: project.id,
+        status: 'SUCCESS',
+        commitHash: 'INITIAL',
+        deploymentUrl: deployResult.deploymentUrl,
+        buildLogs: '> Build triggered via DeployHQ Engine\n> Cloning repository...\n> Running deployment...\n> Success!'
+      }
+    });
+  }
+
+  // 2. Automated Cloudflare for SaaS Registration (Domain side)
   const host = (await headers()).get('host');
   if (host && !host.includes('localhost')) {
     const customHostname = `${name.toLowerCase().replace(/\s+/g, '-')}.${host}`;
