@@ -99,22 +99,21 @@ export default function BuildLogViewer({ projectId, initialDeployments }: { proj
               ))}
             </div>
 
-            {/* Fake Log Terminal view simulating Wrangler deployments */}
-            <div className="mt-8 bg-[#09090b] border border-zinc-800 rounded-lg p-4 font-mono text-xs text-zinc-400 h-[150px] overflow-y-auto">
+            {/* Real-time Build Log Terminal */}
+            <div className="mt-8 bg-[#09090b] border border-zinc-800 rounded-lg p-4 font-mono text-xs text-zinc-400 h-[200px] overflow-y-auto flex flex-col items-start" style={{ scrollBehavior: 'smooth' }}>
+              {(deployment as any).buildLogs?.split('\n').map((line: string, i: number) => {
+                const isAction = line.startsWith('>');
+                const isSuccess = line.includes('✓');
+                const isResult = line.includes('added') || line.includes('Creating');
+                return (
+                  <p key={i} className={`mb-1.5 ${isAction ? 'text-zinc-300 font-semibold' : isSuccess ? 'text-emerald-400' : isResult ? 'text-blue-400' : 'text-zinc-500'}`}>
+                    {line}
+                  </p>
+                )
+              })}
               {isBuilding && (
-                <div className="animate-pulse space-y-2">
-                  <p className="text-zinc-500">&gt; npm install</p>
-                  <p className="text-emerald-400">added 452 packages in 3s</p>
-                  <p className="text-zinc-500 mt-2">&gt; npm run build</p>
-                  <p className="text-zinc-300">Creating an optimized production build...</p>
-                  <p className="text-blue-400 mt-2">Uploading to Cloudflare Pages ☁️</p>
-                </div>
-              )}
-              {isSuccess && (
-                <div className="space-y-2">
-                  <p className="text-emerald-400 border-b border-zinc-800 pb-2 mb-2">Build successfully triggered via API route. (1200ms)</p>
-                  <p>✔ Deployed to Cloudflare infrastructure natively.</p>
-                  <p className="text-white mt-4">Done in 12.0s.</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="w-1.5 h-3 bg-zinc-500 animate-[pulse_1s_infinite]"></span>
                 </div>
               )}
             </div>
