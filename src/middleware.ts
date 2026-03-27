@@ -9,7 +9,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|project-sites|.well-known|_next/static|_next/image|favicon.ico).*)',
   ],
 };
 
@@ -21,7 +21,12 @@ export default async function middleware(req: NextRequest) {
   // Check if the current host is the main dashboard or a static path
   const platformHost = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:4400';
   
-  if (hostname === platformHost || hostname === 'localhost:4400') {
+  if (
+    hostname === platformHost || 
+    hostname === 'localhost:4400' ||
+    url.pathname.startsWith('/project-sites') ||
+    url.pathname.startsWith('/.well-known')
+  ) {
     return NextResponse.next();
   }
 
