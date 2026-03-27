@@ -1,0 +1,241 @@
+.dashboard {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--muted-foreground);
+  font-size: 1rem;
+}
+
+.deployButton {
+  background-color: var(--foreground);
+  color: var(--background);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.deployButton:hover {
+  opacity: 0.9;
+}
+
+.deployButton:active {
+  transform: scale(0.98);
+}
+
+.searchBar {
+  margin-bottom: 24px;
+}
+
+.searchInput {
+  width: 100%;
+  max-width: 400px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background-color: transparent;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  border-color: var(--foreground);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background-color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: #3f3f46;
+}
+
+.cardHeader {
+  padding: 24px 24px 16px 24px;
+}
+
+.cardTitleLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.projectName {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--foreground);
+}
+
+.projectUrl {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.projectUrl a:hover {
+  text-decoration: underline;
+}
+
+.cardBody {
+  padding: 0 24px 20px 24px;
+  flex: 1;
+}
+
+.repoDetails {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.icon {
+  color: var(--muted-foreground);
+}
+
+.metaInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.branchName {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--foreground);
+}
+
+.cardFooter {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusReady {
+  color: var(--success);
+}
+
+.statusBuilding {
+  color: #eab308;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.statusBuilding .statusDot {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+/* Empty State Styling */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 64px 24px;
+  background-color: var(--accent);
+  margin-top: 32px;
+}
+
+.emptyStateIconWrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background-color: var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.emptyStateIcon {
+  color: var(--muted-foreground);
+}
+
+.emptyStateTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+
+.emptyStateSub {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  margin-bottom: 24px;
+  max-width: 380px;
+}
