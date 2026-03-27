@@ -11,7 +11,9 @@ export async function createTemplateProject(formData: FormData) {
 
   if (!userId) redirect('/login');
 
-  const name = formData.get('name') as string || `deployhq-demo-${Math.random().toString(36).substring(2, 8)}`;
+  let nameInput = formData.get('name') as string || 'deployhq-demo';
+  nameInput = nameInput.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const name = `${nameInput}-${Math.random().toString(36).substring(2, 8)}`;
   const repo = formData.get('repo') as string || 'https://github.com/vercel/next.js';
 
   const project = await prisma.project.create({
@@ -43,7 +45,9 @@ export async function uploadLocalProject(formData: FormData) {
 
   const files = formData.getAll('files') as File[];
   const folderName = formData.get('folderName') as string || 'Local Project';
-  const name = formData.get('name') as string || `local-app-${Math.random().toString(36).substring(2, 8)}`;
+  let nameInput = formData.get('name') as string || 'local-app';
+  nameInput = nameInput.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const name = `${nameInput}-${Math.random().toString(36).substring(2, 8)}`;
   
   if (!files || files.length === 0) {
     throw new Error("No files uploaded!");
