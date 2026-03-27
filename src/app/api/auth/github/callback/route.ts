@@ -63,18 +63,28 @@ export async function GET(req: Request) {
         // Link GitHub to existing account
         user = await prisma.user.update({
           where: { id: user.id },
-          data: { githubId: String(githubUser.id) },
+          data: { 
+            githubId: String(githubUser.id),
+            githubAccessToken: accessToken
+          },
         });
       } else {
         // Create new account
         user = await prisma.user.create({
           data: {
             githubId: String(githubUser.id),
+            githubAccessToken: accessToken,
             email: email,
             name: githubUser.name || githubUser.login,
           },
         });
       }
+    } else {
+      // Update access token if user exists
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { githubAccessToken: accessToken }
+      });
     }
 
     // 4. Set session cookie

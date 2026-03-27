@@ -1,13 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createTemplateProject, uploadLocalProject } from '../actions/project';
+import { getGithubRepositories } from '../actions/github';
 import Link from 'next/link';
 
 export default function NewProject() {
-  const [tab, setTab] = useState<'github' | 'upload'>('github');
+  const [tab, setTab] = useState<'github' | 'templates' | 'upload'>('github');
   const [folderName, setFolderName] = useState<string | null>(null);
   const [fileCount, setFileCount] = useState<number>(0);
+  const [repos, setRepos] = useState<any[] | null>(null);
+  const [loadingRepos, setLoadingRepos] = useState(true);
+
+  useEffect(() => {
+    async function fetchRepos() {
+      const data = await getGithubRepositories();
+      setRepos(data);
+      setLoadingRepos(false);
+      if (!data) setTab('templates'); // Fallback if no github
+    }
+    fetchRepos();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -34,15 +47,73 @@ export default function NewProject() {
             Import Repository
           </button>
           <button 
+            onClick={() => setTab('templates')}
+            className={`flex-1 py-4 text-sm font-semibold transition-colors ${tab === 'templates' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            Templates
+          </button>
+          <button 
             onClick={() => setTab('upload')}
             className={`flex-1 py-4 text-sm font-semibold transition-colors ${tab === 'upload' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
           >
-            Upload from Computer
+            Upload
           </button>
         </div>
 
-        <div className="p-8 md:p-12">
-          {tab === 'github' ? (
+        <div className="p-8 md:p-10">
+          {tab === 'github' && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-bold text-white mb-2">Import Git Repository</h1>
+                <p className="text-sm text-zinc-400">Select a repository to deploy instantly with full pipeline logs.</p>
+              </div>
+
+              {loadingRepos ? (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <div className="w-6 h-6 border-2 border-zinc-500 border-t-zinc-200 rounded-full animate-spin"></div>
+                  <p className="text-sm text-zinc-500 font-medium">Fetching repositories from GitHub...</p>
+                </div>
+              ) : !repos ? (
+                <div className="text-center py-8 px-6 bg-zinc-900/40 border border-zinc-800 rounded-xl">
+                  <h3 className="text-zinc-200 font-semibold mb-2">GitHub Not Connected</h3>
+                  <p className="text-xs text-zinc-500 mb-6">Connect your GitHub account to import and deploy your repositories directly from our dashboard.</p>
+                  <Link 
+                    href="/api/auth/github"
+                    className="bg-white text-black px-5 py-2.5 rounded-md text-sm font-bold hover:bg-zinc-200 transition-colors inline-block"
+                  >
+                    Connect GitHub
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {repos.map((repo) => (
+                    <div key={repo.id} className="flex items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-lg hover:border-zinc-600 transition group">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 flex items-center justify-center bg-black border border-zinc-800 rounded">
+                           <svg className="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold text-zinc-200 truncate">{repo.name}</h4>
+                          <p className="text-[10px] text-zinc-600 font-mono truncate">{repo.full_name}</p>
+                        </div>
+                        {repo.private && <span className="text-[10px] bg-zinc-900 border border-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded uppercase font-bold">Private</span>}
+                      </div>
+
+                      <form action={createTemplateProject}>
+                        <input type="hidden" name="name" value={repo.name} />
+                        <input type="hidden" name="repo" value={repo.url} />
+                        <button type="submit" className="text-xs bg-zinc-100 hover:bg-white text-black font-bold px-3.5 py-1.5 rounded-md transition transform group-hover:scale-105">
+                          Import
+                        </button>
+                      </form>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'templates' && (
             <>
               <div className="mb-10 text-center">
                 <h1 className="text-3xl font-bold tracking-tight text-white mb-3">Install a Template</h1>
@@ -76,7 +147,9 @@ export default function NewProject() {
                 </button>
               </form>
             </>
-          ) : (
+          )}
+
+          {tab === 'upload' && (
             <>
               <div className="mb-10 text-center">
                 <h1 className="text-3xl font-bold tracking-tight text-white mb-3">Upload Source Code</h1>
@@ -86,7 +159,6 @@ export default function NewProject() {
               <form action={uploadLocalProject} className="flex flex-col gap-6">
                 
                 <label className="relative border-2 border-dashed border-zinc-800 hover:border-zinc-500 rounded-xl bg-zinc-950/50 p-12 flex flex-col items-center justify-center cursor-pointer transition-colors group">
-                  {/* webkitdirectory allows browsers to recursively select entire folders */}
                   {/* @ts-expect-error non-standard but required for folder uploads */}
                   <input type="file" name="files" multiple webkitdirectory="" onChange={handleFileChange} className="hidden" />
                   <input type="hidden" name="folderName" value={folderName || "Local Project"} />
