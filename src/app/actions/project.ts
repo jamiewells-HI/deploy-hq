@@ -73,17 +73,51 @@ export async function uploadLocalProject(formData: FormData) {
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
   console.log(`[DeployHQ] Securely receiving ${files.length} files (${Math.round(totalSize/1024)} KB) from directory: ${folderName}...`);
 
+  // 1. Create the Database Record
   const project = await prisma.project.create({
     data: {
       userId,
       name,
-      repository: `Local Directory: ${folderName}`,
-      buildCommand: 'npm run build',
-      outputDir: 'dist',
+      repository: `Local: ${folderName}`,
+      buildCommand: 'n/a (pre-built)',
+      outputDir: './',
     }
   });
 
-  // Automated Cloudflare for SaaS Registration
+  // 2. Real Production Asset Sync (R2)
+  const { uploadToR2 } = await import('@/lib/storage');
+  console.log(`[DeployHQ] Syncing ${files.length} assets to production storage for ${name}...`);
+
+  for (const file of files) {
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    
+    // Determine content type based on file extension
+    let contentType = 'application/octet-stream';
+    if (file.name.endsWith('.html')) contentType = 'text/html';
+    else if (file.name.endsWith('.css')) contentType = 'text/css';
+    else if (file.name.endsWith('.js')) contentType = 'application/javascript';
+    else if (file.name.endsWith('.json')) contentType = 'application/json';
+    else if (file.name.endsWith('.png')) contentType = 'image/png';
+    else if (file.name.endsWith('.jpg') || file.name.endsWith('.jpeg')) contentType = 'image/jpeg';
+    else if (file.name.endsWith('.svg')) contentType = 'image/svg+xml';
+
+    // Store in R2 under the project name prefix
+    await uploadToR2(`${name}/${file.name}`, buffer, contentType);
+  }
+
+  // 3. Register as a Production Successful Deployment
+  await prisma.deployment.create({
+    data: {
+      projectId: project.id,
+      status: 'SUCCESS',
+      commitHash: 'UPLOAD_V1',
+      deploymentUrl: `http://${name}.localhost:4400`, // Internal Virtual URL (Middleware handles resolution)
+      buildLogs: `> [Engine] Successfully processed ${files.length} assets.\n> [Engine] Deploying to Cloudflare R2 storage...\n> [Engine] Site is live!`
+    }
+  });
+
+  // 4. Automated Cloudflare for SaaS Registration
   const host = (await headers()).get('host');
   if (host && !host.includes('localhost')) {
     const customHostname = `${name.toLowerCase().replace(/\s+/g, '-')}.${host}`;
