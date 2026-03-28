@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import Link from 'next/link';
 import DomainManager from '@/components/ui/DomainManager';
 import EnvVarManager from '@/components/ui/EnvVarManager';
+import DeleteProjectButton from '@/components/ui/DeleteProjectButton';
 
 export default async function ProjectSettings({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -111,7 +112,7 @@ export default async function ProjectSettings({ params }: { params: Promise<{ id
               <p className="text-sm text-zinc-400 mb-6 max-w-lg">The project will be permanently deleted along with its entire deployment history. This action cannot be officially undone.</p>
               
               <div className="flex justify-end">
-                <button className="bg-red-500 text-white hover:bg-red-600 font-semibold px-4 py-2 rounded-md text-sm transition-colors border border-red-500/50">Delete {project.name}</button>
+                <DeleteProjectButton projectId={project.id} projectName={project.name} />
               </div>
             </div>
           </div>

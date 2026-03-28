@@ -202,4 +202,29 @@ export async function deleteEnvVar(id: string) {
   });
 }
 
+export async function deleteProject(projectId: string) {
+  const cookieStore = await cookies();
+  const userId = cookieStore.get('auth')?.value;
+  if (!userId) throw new Error("Unauthorized");
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId }
+  });
+
+  if (!project || project.userId !== userId) {
+    throw new Error("Project not found or unauthorized");
+  }
+
+  // 1. Delete associated data
+  await prisma.deployment.deleteMany({ where: { projectId } });
+  await prisma.domain.deleteMany({ where: { projectId } });
+  await prisma.envVar.deleteMany({ where: { projectId } });
+
+  // 2. Delete the project
+  await prisma.project.delete({ where: { id: projectId } });
+
+  // 3. Redirect back to dashboard
+  redirect('/dashboard');
+}
+
 
