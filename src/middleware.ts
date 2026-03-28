@@ -50,23 +50,30 @@ export default async function middleware(req: NextRequest) {
   if (!slug) return NextResponse.next();
 
   // 3. Project Lookup & Production Routing
-  // In production, we fetch the actual deployment URL for this slug.
-  // We'll call a secure internal API route that has Prisma access.
+  // Using a robust fetch that avoids loopbacks and hostname resolution issues locally
   try {
-    const lookupUrl = new URL(`/api/project/lookup?slug=${slug}`, req.url);
-    const res = await fetch(lookupUrl);
-    const projectData = await res.json();
+    // Use 127.0.0.1 locally to avoid DNS issues with lvh.me, but keep the original host header
+    const lookupUrl = new URL(`/api/project/lookup?slug=${slug}`, 'http://127.0.0.1:4400');
+    const res = await fetch(lookupUrl, {
+      headers: { 'host': platformHost } // Pass the main host so Next.js knows which app it is
+    });
+    
+    // Verify response is actually JSON before parsing
+    const contentType = res.headers.get('content-type');
+    if (res.ok && contentType && contentType.includes('application/json')) {
+      const projectData = await res.json();
 
-    if (projectData && projectData.deploymentUrl) {
-      console.log(`[Middleware] PRO PROXY: Rewriting ${hostname} to ${projectData.deploymentUrl}${url.pathname}`);
-      
-      // Rewrite to the real Cloudflare Pages URL (silent proxy)
-      return NextResponse.rewrite(new URL(`${projectData.deploymentUrl}${url.pathname}${url.search}`, projectData.deploymentUrl));
+      if (projectData && projectData.deploymentUrl) {
+        console.log(`[Middleware] Resolved production URL: ${projectData.deploymentUrl}`);
+        
+        // Rewrite to the production destination (Cloudflare Pages / R2)
+        return NextResponse.rewrite(new URL(`${projectData.deploymentUrl}${url.pathname}${url.search}`, projectData.deploymentUrl));
+      }
     }
   } catch (e) {
-    console.error("[Middleware] Routing lookup failed, falling back to dashboard", e);
+    console.error("[Middleware] Routing lookup failed, falling back to local serve", e);
   }
 
-  // Fallback: If no deployment yet, show the mock dashboard route
-  return NextResponse.rewrite(new URL(`/project-sites/${slug}${url.pathname}`, req.url));
+  // 4. Default Internal Routing (Local Serve)
+  return NextResponse.rewrite(new URL(`/project-sites/${slug}${url.pathname}${url.search}`, req.url));
 }
